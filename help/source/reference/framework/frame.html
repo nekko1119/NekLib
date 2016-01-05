@@ -1,0 +1,239 @@
+<!doctype html public "-//W3C//DTD HTML 4.01 Transitional//EN">
+<html lang="ja">
+<head>
+<meta http-equiv="content-type" content="text/html; charset=shift_jis">
+<meta http-equiv="content-style-type" content="text/css">
+<meta http-equiv="content-script-type" content="text/javascript">
+<meta name="author" content="根っこ">
+<meta name="generetor" content="サクラエディタ">
+<link rel="stylesheet" type="text/css" href="../../style.css">
+<link rel="stylesheet" type="text/css" href="code.css">
+<style>
+table {border-style : none;}
+</style>
+<title>
+Frame
+</title>
+</head>
+<body>
+<p><a href="../../../index.html">トップ</a>　<a href="../../reference.html">リファレンス</a>　<a href="../framework.html">フレームワーク</a>　Frameクラス</p>
+<hr>
+<h1>・Frameクラス</h1>
+<p>
+必要なヘッダ：Frame.h<br>
+継承元：なし<br>
+<br>
+ウインドウの作成や、メッセージループ、Direct Graphics(※1)の初期化(※2)など、最も基本的な処理を行います。<br>
+Windowクラス（ウインドウ作成管理）、Graphicクラス（Direct3D、Direct3DDevice9の作成管理）の2つのサブシステムへのファサードパターン、<br>
+そして、1つのゲームにウインドウやデバイスは１つとし、シングルトンパターンで設計しています。<br>
+シングルトンパターンとはそのクラスのインスタンスが１つしか無い事を保証するものです。<br>
+詳しくはググってください（<br>
+<br>
+(※1　DirectXは色々な機能（描画や動画や通信や音や入力など）が集まったもので、Direct Graphicsはその中の描画担当のことです）<br>
+(※2　Direct Graphicsの初期化ではデバイス（パソコンのディスプレイやグラフィックボードの性能を調べて、一様に扱えるようにしたもの）<br>
+を作成します）<br>
+</p>
+<table>
+<tr>
+<th>メソッド名</th><th>概略</th>
+</tr>
+<tr>
+<td><br></td><td><br></td>
+</tr>
+<tr>
+<td><a href="#Init">Init</a></td><td>初期化</td>
+</tr>
+<tr>
+<td><a href="#Create">Create</a></td><td>ウインドウ、デバイスを作成する</td>
+</tr>
+<tr>
+<td><a href="#Run">Run</a></td><td>メインループを行う</td>
+</tr>
+<tr>
+<td><br></td><td><br></td>
+</tr>
+<tr>
+<th>アクセサー名</th><th>概略</th>
+</tr>
+<tr>
+<td><br></td><td><br></td>
+</tr>
+<tr>
+<td><a href="#Width">Width</a></td><td>ウインドウの幅</td>
+</tr>
+<tr>
+<td><a href="#Height">Height</a></td><td>ウインドウの高さ</td>
+</tr>
+<tr>
+<td><br></td><td><br></td>
+</tr>
+<tr>
+<th>静的メソッド名</th><th>概略</th>
+</tr>
+<tr>
+<td><br></td><td><br></td>
+</tr>
+<tr>
+<td><a href="#Get">Get</a></td><td>このクラス唯一のインスタンスのポインタを返す</td>
+</tr>
+<tr>
+<td><br></td><td><br></td>
+</tr>
+<tr>
+<th>静的メンバ名</th><th>概略</th>
+</tr>
+<tr>
+<td><br></td><td><br></td>
+</tr>
+</table>
+<br><br>
+<hr>
+<a name="Init"><h3>Init</h3></a>
+<table>
+<tr>
+<td><pre><span class="key">bool</span> Init(<span class="key">const char</span>* <i>title</i>, <span class="key">int</span> <i>width</i>, <span class="key">int</span> <i>height</i>, <span class="key">bool</span> <i>consoleFlag</i>, <span class="key">bool</span> <i>isWindoed</i>)</pre></td>
+</tr>
+</table>
+<p>
+戻り値　：　true：成功<br>
+　　　　　　false：失敗<br>
+引　数　：　<i>title</i>　：　ウインドウのタイトル<br>
+　　　　　　<i>width</i>　：　ウインドウのクライアント領域の幅<br>
+　　　　　　<i>height</i>　：　ウインドウのクライアント領域の高さ<br>
+　　　　　　<i>consoleFlag</i>　：　コンソール画面を作成するかどうか（true：作成する　falseｓ：作成しない）<br>
+　　　　　　<i>isWindowed</i>　：　ウインドウかフルスクリーンか（true：ウインドウモード　false：フルスクリーンモード）<br>
+例　外　：　なし<br>
+<br>
+<a href="#Create">Create</a>関数を実行する際に必要なデータをこの関数でセットします。<br>
+ウインドウのサイズはウインドウモードの場合、任意のサイズで構いませんが、フルスクリーンの場合は規格に沿ったサイズにする必要があります。<br>
+（320*240、640*480、800*600、1024*768、…（4:3））や(1280*720、1920*1080、…(16:9））など。<br>
+コンソール画面を作成することでGUIながら、printfやstd::coutを使用することが出来ます。<br>
+引数の値が不正（titleがnullptrだったり、widthなどが負の値など）の時、Window::Initから例外が投げられますが、<br>
+この関数内でcatchブロックを記述してあり、警告のメッセージボックスを出して、デフォルト値(title = "NekLib", width = 640, height = 480)で初期化を行います。<br>
+</p>
+<table>
+<tr>
+<td><pre><span class="key">bool</span> Init(<span class="key">const char</span>* <i>title</i>, <span class="key">int</span> <i>width</i>, <span class="key">int</span> <i>height</i>, <span class="key">bool</span> <i>consoleFlag</i>, <span class="key">bool</span> <i>isWindowed</i>,
+          <span class="key">int</span> <i>x</i>, <span class="key">int</span> <i>y</i>, <span class="key">const</span> HICON <i>hIcon</i>, <span class="key">const</span> HCURSOR <i>hCursor</i>)</pre></td>
+</tr>
+</table>
+<p>
+戻り値　：　true：成功<br>
+　　　　　　false：失敗<br>
+引　数　：　<i>title</i>　：　ウインドウのタイトル<br>
+　　　　　　<i>width</i>　：　ウインドウの幅<br>
+　　　　　　<i>height</i>　：　ウインドウの高さ<br>
+　　　　　　<i>consoleFlag</i>　：　コンソール画面を作成するかどうか（true：作成する　falseｓ：作成しない）<br>
+　　　　　　<i>isWindowed</i>　：　ウインドウかフルスクリーンか（true：ウインドウモード　false：フルスクリーンモード）<br>
+　　　　　　<i>x</i>　：　ウインドウの左上x座標<br>
+　　　　　　<i>y</i>　：　ウインドウの左上y座標<br>
+　　　　　　<i>hIcon</i>　：　このexeのアイコン画像<br>
+　　　　　　<i>hCursor</i>　：　マウスポインタ画像<br>
+例　外　：　なし<br>
+<br>
+<a href="#Create">Create</a>関数を実行する際に必要な詳細データをこの関数でセットします。<br>
+ウインドウのサイズはウインドウモードの場合、任意のサイズで構いませんが、フルスクリーンの場合は規格に沿ったサイズにする必要があります。<br>
+（320*240、640*480、800*600、1024*768、…（4:3））や(1280*720、1920*1080、…(16:9））など。<br>
+コンソール画面を作成することでGUIながら、printfやstd::coutを使用することが出来ます。<br>
+アイコンはexeのアイコン、カーソルはゲーム中のマウスポインタを独自の画像にしたい場合に使います。<br>
+これはWin32Apiの話になってくるのでここでは割愛します。各自調べて下さい（ぇー<br>
+引数の値が不正（titleがnullptrだったり、widthなどが負の値など）の時、Window::Initから例外が投げられますが、<br>
+この関数内でcatchブロックを記述してあり、警告のメッセージボックスを出して、デフォルト値(title = "NekLib", width = 640, height = 480)で初期化を行います。<br>
+hIconもhCursorもデフォルトのものになります。<br>
+</p>
+<hr>
+<a name="Create"><h3>Create</h3></a>
+<table>
+<tr>
+<td><pre><span class="key">bool</span> Create()</pre></td>
+</tr>
+</table>
+<p>
+戻り値　：　true：成功<br>
+　　　　　　false：失敗<br>
+引　数　：　なし<br>
+例　外　：　std::runtime_error<br>
+<br>
+DirectXのデバイスの作成とウインドウの作成を行います。<br>
+この関数は必ず1度だけ呼ばなくてはなりません。<br>
+また、この関数を呼ぶ前に必ず<a href="#Init">Init</a>を呼んで、データの設定をする必要があります。<br>
+ウインドウの作成、デバイスの作成に失敗した場合std::runtime_errorが投げられます。<br>
+catchブロックでそれまでに作成したリソースを開放する<処理を書いてプログラム終了するようにすると良いです。<br>
+</p>
+<hr>
+<a name="Run"><h3>Run</h3></a>
+<table>
+<tr>
+<td><pre><span class="key">template</span>&lt;<span class="key">typename</span> Type&gt;
+<span class="key">bool</span> Run(Type* <i>pType</i>)</pre></td>
+</tr>
+</table>
+<p>
+戻り値　：　true：成功<br>
+　　　　　　false：失敗<br>
+<br>
+引　数	：	<i>pType</i>：メンバ関数にUpdate()、Draw()を持つクラスのインスタンスのポインタ<br>
+例　外　：　なし<br>
+<br>
+このライブラリでゲームのメインループを行う時、クラスを使用するのならメンバ関数にUpdate()、Draw()を持つクラスを作成して下さい。<br>
+そのインスタンスのポインタをこの関数に渡して下さい。クラスを使用しない場合は下記のオーバーロード関数を使用して下さい。<br>
+Updateはゲームの更新処理、Drawは描画処理を記述して下さい。Update、Drawはどちらも引数void（なし）で作成して下さい。<br>
+戻り値は使用していないので、どのような型でも大丈夫です。<br>
+</p>
+<table>
+<tr>
+<td><pre><span class="key">bool</span> Run(<span class="key">int</span> (*<i>Update</i>)(), <span class="key">int</span> (*<i>Draw</i>)())</pre></td>
+</tr>
+</table>
+<p>
+戻り値　：　true：成功<br>
+　　　　　　false：失敗<br>
+引　数　：　<i>Update</i>：戻り値int型、引数voidの関数ポインタ。ゲームの更新処理をする関数<br>
+　　　　　　<i>Draw</i>：戻り値int型、引数voidの関数ポインタ。ゲームの描画処理をする関数<br>
+例　外　：　なし<br>
+<br>
+このライブラリでゲームのメインループを行う時、クラスを使用しないのならグローバル空間に2つの戻り値int型引数voidの関数を定義し、<br>
+そのポインタをこの関数に渡して下さい。クラスを使用する場合は上記のーバーロード関数を使用してください。<br>
+2つの引数のうち第1引数にはゲームの更新処理をする関数のポインタ、第2引数にはゲームの描画処理をする関数のポインタを渡して下さい。<br>
+</p>
+<hr>
+<a name="Width"><h3>Width</h3></a>
+<table>
+<tr>
+<td><pre><span class="key">int</span> Width</pre></td>
+</tr>
+</table>
+<p>
+アクセス　：　Getのみ<br>
+<br>
+ウインドウの幅を返します。<br>
+</p>
+<hr>
+<a name="Height"><h3>Height</h3></a>
+<table>
+<tr>
+<td><pre><span class="key">int</span> Height</pre></td>
+</tr>
+</table>
+<p>
+アクセス　：　Getのみ<br>
+<br>
+ウインドウの高さを返します。<br>
+</p>
+<hr>
+<a name="Get"><h3>Get</h3></a>
+<table>
+<tr>
+<td><pre><span class="key">static</span> Frame* Get()</pre></td>
+</tr>
+</table>
+<p>
+戻り値　：　Frameクラスの静的なインスタンスのポインタ<br>
+引　数　：　なし<br>
+例　外　：　なし<br>
+<br>
+唯一のインスタンスのポインタを返します。<br>
+このメソッドの戻り値を使って他のメンバ関数を使用して下さい。<br>
+</p>
+</body>
+</html>

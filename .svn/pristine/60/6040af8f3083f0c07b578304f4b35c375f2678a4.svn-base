@@ -1,0 +1,467 @@
+#include <Input.h>
+#include <Common.h>
+#include <ComPtr.h>
+
+#include <boost/smart_ptr/shared_array.hpp>
+using boost::shared_array;
+
+#include <dinput.h>
+using namespace NekLib;
+
+#pragma comment(lib, "dinput8.lib")
+#pragma comment(lib, "dxguid.lib")
+#pragma comment(lib, "winmm.lib")
+
+#pragma warning(push)
+#pragma warning(disable : 4800)//'int' : ブール値を 'true' または 'false' に強制的に設定します
+
+//仮想ボタン構造体
+struct Button;
+
+struct Input::Impl
+{
+	static const int MAX_INPUT_DEVICE_NUM = 16;//最大同時接続数
+
+	static ComPtr<IDirectInput8> pDI;//Direct Inputインターフェイス
+	static ComPtr<IDirectInputDevice8> pDIDPad[MAX_INPUT_DEVICE_NUM];//ゲームパッドのデバイス
+	static ComPtr<IDirectInputDevice8> pDIDKey;	//キーボードのデバイス
+	static ComPtr<IDirectInputDevice8> pDIDMouse;	//マウスのデバイス
+
+	static unsigned int maxInputDevice;	//現在の最大接続数
+	static unsigned int deviceCount;	//接続数
+	static bool isFirstInited;			//DirectInputの初期化は1回だけ行えばいいので、2回目以降はスキップする
+
+	DIDEVCAPS didc;					//デバイスの能力を格納する構造体
+	shared_array<Button> pButton;	//仮想ボタン（ボタンの数だけ作成）
+	const unsigned int id;			//このインスタンスが見るデバイスの番号
+
+	int lX;			//アナログスティックx座標（アナログスティックがあれば）
+	int lY;			//アナログスティックy座標（あれば）
+	int rX;			//右アナログスティックx座標（あれば）
+	int rY;			//右アナログスティックy座標（あれば）
+
+	Impl(int id);	//コンストラクタ
+	~Impl();		//デストラクタ
+
+	bool CheckDirection(PAD p, DWORD d);//方向キーのチェック
+
+
+	static BOOL CALLBACK EnumDevicesCallback(LPCDIDEVICEINSTANCE lpdi, LPVOID lpvRef);//デバイスの数を列挙する関数
+	static BOOL CALLBACK EnumAxisesCallback(LPCDIDEVICEOBJECTINSTANCE lpdoi, LPVOID lpvRef);//軸の数を列挙する関数
+};
+
+ComPtr<IDirectInput8> Input::Impl::pDI;
+ComPtr<IDirectInputDevice8> Input::Impl::pDIDPad[Input::Impl::MAX_INPUT_DEVICE_NUM];
+ComPtr<IDirectInputDevice8> Input::Impl::pDIDKey;
+ComPtr<IDirectInputDevice8> Input::Impl::pDIDMouse;
+
+unsigned int Input::Impl::maxInputDevice = 0U;
+unsigned int Input::Impl::deviceCount = 0U;
+bool Input::Impl::isFirstInited = false;
+
+
+//仮想ボタン構造体
+struct Button
+{
+	BUTTON button;	//このボタンがどの仮想ボタンを表しているか
+	KEY key;		//このボタンに設定されているキーボードのキー
+	PAD pad;		//このボタンに設定されているパッドのボタン
+	DWORD time;		//このボタンが何ミリ秒押された時間
+
+	bool isDown;	//このボタンが押されているかどうか
+	bool isPushed;	//押された瞬間かどうか
+	bool isReleased;//離された瞬間かどうか
+
+	Button();	//コンストラクタ
+};
+
+Button::Button() :
+button(BUTTON_NONE),
+	key(KEY_NONE),
+	pad(PAD_NONE),
+	time(0U),
+	isDown(false),
+	isPushed(false),
+	isReleased(false)
+{
+}
+
+Input::Impl::Impl(int id) :
+pButton(nullptr),
+	id(id),
+	lX(0),
+	lY(0),
+	rX(0),
+	rY(0)
+{}
+
+Input::Impl::~Impl()
+{
+	for(unsigned int i=0; i < deviceCount; i++)
+	{
+		pDIDPad[i]->Unacquire();
+	}
+
+	pDIDKey->Unacquire();
+	pDIDMouse->Unacquire();
+}
+
+//方向キーをチェックする
+bool Input::Impl::CheckDirection(PAD p, DWORD d)
+{
+	switch(p)
+	{
+	case PAD_DOWN:
+		{
+			return (d == 13500 || d == 18000 || d == 22500);
+			break;
+		}
+	case PAD_UP:
+		{
+			return (d == 31500 || d == 0 || d == 4500);
+			break;
+		}
+	case PAD_LEFT:
+		{
+			return (d == 22500 || d == 27000 || d == 31500);
+			break;
+		}
+	case PAD_RIGHT:
+		{
+			return (d == 4500 || d == 9000 || d == 13500);
+			break;
+		}
+	default:
+		{
+			return false;
+		}
+	}
+
+	//絶対ここには来ないけど、一応
+	return false;
+}
+
+//デバイスの数を数える関数
+BOOL CALLBACK Input::Impl::EnumDevicesCallback(LPCDIDEVICEINSTANCE lpdi, LPVOID lpvRef)
+{	
+	Input* input = reinterpret_cast<Input*>(lpvRef);
+	input->m_pImpl->didc.dwSize =  sizeof(DIDEVCAPS);
+	Impl::pDI->CreateDevice(lpdi->guidInstance, Impl::pDIDPad[Impl::deviceCount].ToCreate(), nullptr);
+	pDIDPad[deviceCount]->GetCapabilities(&(input->m_pImpl->didc));
+	
+	deviceCount++;//カウントを増やす
+	
+	//もしカウントが現在の最大接続数になったら、すべてのデバイスを確認したということなので
+	//デバイスの列挙を終わる
+	if(deviceCount >= maxInputDevice)
+	{
+		return DIENUM_STOP;
+	}
+
+	//そうでなければ続ける
+	return DIENUM_CONTINUE;
+}
+
+//軸の数を数える関数
+BOOL CALLBACK Input::Impl::EnumAxisesCallback(LPCDIDEVICEOBJECTINSTANCE lpdoi, LPVOID lpvRef)
+{
+	ComPtr<IDirectInputDevice8> pDevice(*(reinterpret_cast<ComPtr<IDirectInputDevice8>*>(lpvRef)));
+
+	//軸の設定
+	DIPROPRANGE dipr;
+	dipr.diph.dwSize = sizeof(dipr);			//この構造体のサイズ
+	dipr.diph.dwHeaderSize = sizeof(dipr.diph);	//この構造体のヘッダ（diph）のサイズ
+	dipr.diph.dwHow = DIPH_DEVICE;				//dwObjが何を表しているか
+	dipr.diph.dwObj = 0U;						//今回は何も表していない
+	dipr.lMax = +1000;							//軸の値の最大値
+	dipr.lMin = -1000;							//軸の値の最小値
+	
+	//設定に失敗したら列挙をやめる
+	if(FAILED(pDevice->SetProperty(DIPROP_RANGE, &dipr.diph)))
+	{
+		return DIENUM_STOP;
+	}
+
+	return DIENUM_CONTINUE;
+}
+
+Input::Input(int id) : m_pImpl(new Impl(id))
+{
+}
+
+Input* Input::Get(int id)
+{
+	int num = id-1;
+	//不正な引数ならNULLを返す
+	if(num < 0 || Impl::MAX_INPUT_DEVICE_NUM <= num)
+	{
+		return nullptr;
+	}
+
+	static std::shared_ptr<Input> instance[Impl::MAX_INPUT_DEVICE_NUM] = {nullptr};
+
+	if(instance[num] != nullptr)
+	{
+		return instance[num].get();
+	}
+	else
+	{
+		instance[num].reset(new Input(num));
+		return instance[num].get();
+	}
+}
+
+bool Input::Init()
+{
+	//ボタンの数だけ仮想ボタン構造体を作成
+	m_pImpl->pButton.reset(new Button[PAD_NONE]);
+
+	//もう既にInitが呼ばれたことがあるなら以下は実行しない
+	if(Impl::isFirstInited)
+	{
+		return true;
+	}
+
+	//現在接続されているデバイスの数を得る
+	m_pImpl->maxInputDevice = joyGetNumDevs();
+
+	//Direct Inputインターフェイスの作成
+	DirectInput8Create
+		(
+		GetModuleHandle(nullptr),				//対象のアプリケーションインスタンスハンドル
+		DIRECTINPUT_VERSION,					//DirectInputバージョン
+		IID_IDirectInput8,						//IDirectInput8のGUIDのポインタ
+		reinterpret_cast<LPVOID*>(Impl::pDI.ToCreate()),//IDirectInput8型のポインタ
+		nullptr									//通常NULL
+		);
+
+	if(!Impl::pDI)
+	{
+		return false;
+	}
+
+	//キーボードデバイスの作成
+	Impl::pDI->CreateDevice(GUID_SysKeyboard, Impl::pDIDKey.ToCreate(), nullptr);
+	if(!Impl::pDIDKey)
+	{
+		return false;
+	}
+	//マウスデバイスの作成
+	Impl::pDI->CreateDevice(GUID_SysMouse, Impl::pDIDMouse.ToCreate(), nullptr);
+	if(!Impl::pDIDMouse)
+	{
+		return false;
+	}
+
+	//現在接続されているデバイスの数を調べる
+	if(FAILED(Impl::pDI->EnumDevices(
+		DI8DEVCLASS_GAMECTRL,			//数えるデバイスの種類。ゲームパッド
+		Impl::EnumDevicesCallback,		//実際にデバイスを数える関数のポインタ
+		reinterpret_cast<LPVOID>(this),	//↑の関数の第2引数に渡す値
+		DIEDBSFL_ATTACHEDONLY			//数えるデバイスの条件。インストール済みですぐ使える状態のもののみ
+		)))
+	{
+		return false;
+	}
+
+	//それぞれのデバイスについて初期設定を行う
+	
+	//スティックの軸の設定（絶対軸、相対軸）
+	DIPROPDWORD dipd;
+	dipd.diph.dwSize = sizeof(dipd);			//この構造体のサイズ
+	dipd.diph.dwHeaderSize = sizeof(dipd.diph);	//この構造体のヘッダ（DIPROHEADER型）のサイズ
+	dipd.diph.dwHow = DIPH_DEVICE;				//dwObjが何を表しているか
+	dipd.diph.dwObj = 0U;						//今回は何も表していないという意味
+	dipd.dwData = DIPROPAXISMODE_ABS;			//軸は絶対軸を使う
+
+	//すべてのデバイスの設定
+	//デバイス分だけ仮想ボタン配列を作る
+	for(unsigned int i=0; i<m_pImpl->deviceCount; i++)
+	{
+		//デバイスの種類はパッドです
+		Impl::pDIDPad[i]->SetDataFormat(&c_dfDIJoystick);
+		
+		//このデバイスへの協調レベル（権力）。最前面にあるときだけ有効で、それ以外の時は他のプロセスに渡す
+		Impl::pDIDPad[i]->SetCooperativeLevel(Window::Get()->HWnd(), DISCL_FOREGROUND | DISCL_NONEXCLUSIVE);
+
+		//デバイスの特定のオブジェクトの数を列挙して設定する（今回は軸）
+		Impl::pDIDPad[i]->EnumObjects
+			(
+			Impl::EnumAxisesCallback,						//実際に軸を列挙して設定する関数のポインタ
+			reinterpret_cast<LPVOID>(&Impl::pDIDPad[i]),	//↑の関数の第2引数
+			DIDFT_AXIS										//軸を列挙する
+			);
+
+		//デバイスの軸モードの設定
+		Impl::pDIDPad[i]->SetProperty(DIPROP_AXISMODE, &dipd.diph);
+
+		//入力の取得開始
+		Impl::pDIDPad[i]->Acquire();
+	}
+
+	//キーボードの設定
+	Impl::pDIDKey->SetDataFormat(&c_dfDIKeyboard);
+	Impl::pDIDKey->SetCooperativeLevel(Window::Get()->HWnd(), DISCL_FOREGROUND | DISCL_NONEXCLUSIVE);
+	Impl::pDIDKey->Acquire();
+	//マウスデバイスの設定
+	Impl::pDIDMouse->SetDataFormat(&c_dfDIMouse);
+	Impl::pDIDMouse->SetCooperativeLevel(Window::Get()->HWnd(), DISCL_FOREGROUND | DISCL_NONEXCLUSIVE);
+	Impl::pDIDMouse->Acquire();
+
+	Impl::isFirstInited = true;
+
+	return true;
+}
+
+bool Input::Update()
+{
+	//デバイスIDが正しくなければデバイスはチェックしない
+	bool hasDeviceID = (m_pImpl->id < Impl::deviceCount);
+
+	DIJOYSTATE dijs;
+	ZeroMemory(&dijs, sizeof(dijs));//全て0で初期化
+	BYTE key[256] = {'\0'};
+
+	//ウインドウがアクティブなら
+	if(Window::Get()->IsActive())
+	{
+		HRESULT hr[2];
+
+		//デバイスの取得
+		hr[0] = hasDeviceID ? Impl::pDIDPad[m_pImpl->id]->Acquire()
+							: DI_OK;
+		hr[1] = Impl::pDIDKey->Acquire();
+
+		//デバイスを取得できたら
+		if((hr[0] == DI_OK || hr[0] == S_FALSE) && (hr[1] == DI_OK || hr[1] == S_FALSE))
+		{
+			if(hasDeviceID)
+			{
+				Impl::pDIDPad[m_pImpl->id]->Poll();	//パッドを見に行く
+				hr[0] = hasDeviceID ? Impl::pDIDPad[m_pImpl->id]->GetDeviceState(sizeof(DIJOYSTATE), &dijs)
+									: DI_OK;		//ボタン入力の取得
+			}
+
+			hr[1] = Impl::pDIDKey->GetDeviceState(256, key);//キーボード入力の取得
+
+			//入力の取得に成功したら
+			if(hr[0] == DI_OK && hr[1] == DI_OK)
+			{
+				//アナログスティックを見に行く
+				m_pImpl->lX = dijs.lX;
+				m_pImpl->lY = dijs.lY;
+				m_pImpl->rX = dijs.lZ;
+				m_pImpl->rY = dijs.lRz;
+
+				//全てのボタンについて入力を見る
+				for(int i=0; i<PAD_NONE; i++)
+				{
+					//デバイスが有効ならチェック、無効ならキーだけ見る
+					bool isHitKey = hasDeviceID ? (m_pImpl->CheckDirection(m_pImpl->pButton[i].pad, dijs.rgdwPOV[0])) ||//パッドの方向キー
+						((m_pImpl->pButton[i].pad < PAD_UP) && (dijs.rgbButtons[m_pImpl->pButton[i].pad] & 0x80)) ||	//パッドのボタン
+						(key[m_pImpl->pButton[i].key] & 0x80)															//キーボード
+												: (key[m_pImpl->pButton[i].key] & 0x80);								//キーボード
+
+					//キーが押されたかどうか
+					if(isHitKey)
+					{
+						//タイマーが0なら今押された瞬間ということ
+						if(m_pImpl->pButton[i].time == 0U)
+						{
+							m_pImpl->pButton[i].isPushed = true;
+							m_pImpl->pButton[i].isReleased = false;
+							m_pImpl->pButton[i].time = timeGetTime();
+						}
+						else
+						{
+							m_pImpl->pButton[i].isPushed = false;
+						}
+
+						m_pImpl->pButton[i].isDown = true;
+					}
+					//押されていない
+					else
+					{
+						//タイマーが0じゃないということは今離されたということ
+						if(m_pImpl->pButton[i].time != 0)
+						{
+							m_pImpl->pButton[i].isReleased = true;
+							m_pImpl->pButton[i].isPushed = false;
+							m_pImpl->pButton[i].time = 0U;
+						}
+						else
+						{
+							m_pImpl->pButton[i].isReleased = false;
+						}
+
+						m_pImpl->pButton[i].isDown = false;
+					}
+				}//（全てのボタンについて入力を見る）
+			}//（入力の取得に成功したら）
+		}//（デバイスを取得できたら）
+	}
+	//ウインドウが非アクティブなら
+	else
+	{
+		//アクセス権を開放する
+		if(hasDeviceID)
+		{
+			Impl::pDIDPad[m_pImpl->id]->Unacquire();
+		}
+		Impl::pDIDKey->Unacquire();
+		
+		//全部押していない判定にする
+		for(int i=0; i<PAD_NONE; i++)
+		{
+			m_pImpl->pButton[i].isReleased = false;
+			m_pImpl->pButton[i].isPushed = false;
+			m_pImpl->pButton[i].isDown = false;
+			m_pImpl->pButton[i].time = 0U;
+		}
+	}
+
+	return true;
+}
+
+bool Input::SetButton(BUTTON button, KEY key, PAD pad)
+{
+	m_pImpl->pButton[button].button = button;
+	m_pImpl->pButton[button].key = key;
+	m_pImpl->pButton[button].pad = pad;
+	
+	return true;
+}
+
+bool Input::IsDown(BUTTON button) const
+{
+	return m_pImpl->pButton[button].isDown;
+}
+
+bool Input::IsPushed(BUTTON button) const
+{
+	return m_pImpl->pButton[button].isPushed;
+}
+
+bool Input::IsReleased(BUTTON button) const
+{
+	return m_pImpl->pButton[button].isReleased;
+}
+
+unsigned int Input::GetTime(BUTTON button) const
+{
+	return m_pImpl->pButton[button].time ? timeGetTime() - m_pImpl->pButton[button].time : 0U;
+}
+
+void Input::GetAnalogPad(int* pOutX, int* pOutY) const
+{
+	*pOutX = m_pImpl->lX;
+	*pOutY = m_pImpl->lY;
+}
+
+void Input::GetAnalogPad2(int* pOutX, int* pOutY) const
+{
+	*pOutX = m_pImpl->rX;
+	*pOutY = m_pImpl->rY;
+}
+
+#pragma warning(pop)

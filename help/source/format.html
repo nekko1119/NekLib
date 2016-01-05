@@ -1,0 +1,100 @@
+<!doctype html public "-//W3C//DTD HTML 4.01 Transitional//EN">
+<html lang="ja">
+<head>
+<meta http-equiv="content-type" content="text/html; charset=shift_jis">
+<meta http-equiv="content-style-type" content="text/css">
+<meta http-equiv="content-script-type" content="text/javascript">
+<meta name="author" content="根っこ">
+<meta name="generetor" content="サクラエディタ">
+<link rel="stylesheet" type="text/css" href="style.css">
+<title>
+仕様
+</title>
+</head>
+<body>
+<p><a href="../index.html">トップ</a></p>
+<hr>
+<h1>・仕様</h1>
+<h2>・環境</h2>
+<h3>必須環境</h3>
+<p>
+OS Windows XP　以降<br>
+Visual Studio 2008　以降　がある<br>
+Microsoft DirectX9.0c(August 2009)以降のSDK<br>
+</p>
+<h3>推奨環境</h3>
+<p>
+CPU IntelCore2 Duo 1.40GHz　以上<br>
+メモリ　数MB<br>
+</p>
+<h2>・機能（*が付いているものは未実装)</h2>
+<p>
+<ul type="disc">
+	<li>Win32API関連</li>
+	<ul type="circle"><br>
+		<li>ウインドウ作成（位置、サイズ、タイトル、アイコン、カーソル）</li>
+		<li>メッセージループ処理</li>
+		<br><br>
+	</ul>
+	<li>DirectX関連</li>
+	<ul type="circle"><br>
+		<li>グラフィック</li>
+		<ul type="square">
+			<li>2D関連</li>
+			<ul type="disc">
+				<li>画像ファイル(gif, jpg, png, bmp, dds)の読み込み</li>
+				<li>画像の描画（座標、反転、回転、拡縮）</li>
+				<li>画像のアルファブレンド（半透明、加算、減算、乗算）</li>
+				<br><br>
+			</ul>
+			<li>3D関連</li>
+			<ul type="disc">
+				<li>*モデルファイル(x)の読み込み</li>
+				<li>*モデルの描画（座標、反転、回転、拡縮）</li>
+				<li>*テクスチャの貼付け</li>
+				<li>*アルファブレンド（半透明、加算、減算、乗算）</li>
+				<li>*カメラ操作</li>
+				<li>*ライティング</li>
+				<li>*移動アニメーション</li>
+				<br><br>
+			</ul>
+			<li>その他</li>
+			<ul type="disc">
+				<li>初期化（ウインドウ、フルスクリーン切り替え）</li>
+				<li>*簡易図形描画(点、線、矩形、三角形、円）2D3Dどちらにも</li>
+				<li>*簡易文字出力</li>
+				<li>*フォント（読込、位置サイズ指定、ブレンディング）</li>
+				<br><br>
+			</ul>
+		</ul>
+		<li>サウンド</li>
+		<ul type="sqare">
+			<li>*音声ファイル（wav, mp3, ogg)の読み込み</li>
+			<li>*再生、一時停止、途中再生、停止、音量</li>
+			<br><br>
+		</ul>
+		<li>入力</li>
+		<ul type="square">
+			<li>*キーボードの押下状態</li>
+			<li>*マウスのクリック、ホイール</li>
+			<li>*ゲームパッド（ボタン、アナログスティック）</li>
+		</ul>
+		<br>
+	</ul>
+	<li>数学</li>
+	<ul type="circle"><br>
+		<li>3次元ベクトルクラス</li>
+		<li>*4次元行列</li>
+	</ul>
+	<br>
+	<li>その他</li>
+	<ul type="circle"><br>
+		<li>*ゲームシーン管理</li>
+		<li>*FPS管理クラス</li>
+		<li>コンソール画面の作成</li>
+		<li>*CSVファイル読み書き</li>
+		<li>*衝突判定</li>
+</ul>
+</p>
+</body>
+</html>

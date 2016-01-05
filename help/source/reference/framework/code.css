@@ -1,0 +1,21 @@
+pre
+{
+	background : #ffffee;
+	font-size : 16px;
+	border : thin solid #48aa48;
+}
+
+span.str
+{
+	color : #7f0000;
+}
+
+.key
+{
+	color : #0000ff;
+}
+
+.com
+{
+	color : #00ff00;
+}

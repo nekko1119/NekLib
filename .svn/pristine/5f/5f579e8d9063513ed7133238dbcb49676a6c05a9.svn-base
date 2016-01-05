@@ -1,0 +1,75 @@
+#ifndef NEKLIB_IMAGE_H
+#define NEKLIB_IMAGE_H
+
+#include <NekLib/IResource.h>
+#include <NekLib/Vector.h>
+#include <memory>//for shared_ptr
+
+namespace NekLib
+{
+enum BLENDMODE;
+enum ALPHAMODE;
+
+class Image : public IResource
+{
+public:
+	Image();
+	explicit Image(const char* fileName);
+	Image(const Image& rhs);
+	Image& operator=(const Image& rhs);
+	virtual ~Image();
+	void Swap(Image& rhs);
+
+	//ファイルを開く閉じる
+	bool Open(const char* fileName, int xNum, int yNum);
+	bool Open(const char* fileName);
+	bool Close();
+
+	//分割画像の描画
+	bool Draw(int num, const Vector& position, float angle, float rate, const Vector& center, bool isTrans = false);
+	bool Draw(int num, const Vector& position, float angle, float rate, bool isTrans = false);
+	bool Draw(int num, const Vector& position, bool isTrans = false);
+
+	//描画
+	bool Draw(const Vector& position, float angle, float rate, const Vector& center, bool isTrans = false);
+	bool Draw(const Vector& position, float angle, float rate, bool isTrans = false);
+	bool Draw(const Vector& position, bool isTrans = false);
+
+	//アクセサー
+
+	void BlendMode(BLENDMODE blendMode);
+	void Alpha(unsigned char alpha);
+	void AlphaMode(ALPHAMODE AlphaMode);
+	void TransColor(unsigned int color);
+
+	int Width() const;
+	int Height() const;
+
+private:
+	struct Impl;
+	std::shared_ptr<Impl> m_pImpl;
+};
+
+//描画する画像とその画像の後にある画像とのブレンドの仕方
+enum BLENDMODE
+{
+	BLENDMODE_NONE,		//ブレンドしない
+	BLENDMODE_ALPHA,	//画像自体のアルファ値でブレンド
+	BLENDMODE_ALPHA2,	//アルファ値を任意で設定してブレンド
+	BLENDMODE_ADD,		//加算合成
+	BLENDMODE_SUB,		//減算合成
+	BLENDMODE_MUL,		//乗算合成
+};
+
+//画像自体の読み込み方（アルファ）
+enum ALPHAMODE
+{
+	ALPHAMODE_NONE,			//アルファチャンネルはない
+	ALPHAMODE_DEFAULT,		//画像自体のアルファ値を使う(ARGBorRGBAに対応している拡張子のみ(.pngとか)）
+	ALPHAMODE_TRANS,		//透過色を使用する
+	ALPHAMODE_ALPHAGRAPH,	//その画像とは別にアルファ値用の白黒画像を使う（未実装）
+};
+
+}//namespace NekLib
+
+#endif

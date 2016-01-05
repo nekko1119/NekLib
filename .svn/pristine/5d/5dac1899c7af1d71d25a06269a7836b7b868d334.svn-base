@@ -1,0 +1,73 @@
+body
+{
+	margin-left : 16px;
+	background : #f0ffb0;
+}
+
+a:link
+{
+	color : #0066cc;
+}
+
+a:visited
+{
+	color : #0066cc;
+}
+
+h1
+{
+	background : #16aa16;
+	color : #ffffff;
+	font-size : 36px;
+	line-height : 1.5em;
+}
+
+h2
+{
+	margin-left : 16px;
+	color : #167016;
+	font-size : 20px;
+	line-height : 1.2em;
+}
+
+h3
+{
+	margin-left : 20px;
+	color : #704040;
+	font-size : 16px;
+}
+
+h4
+{
+	margin-left : 24px;
+	font-weight : normal;
+	font-size : 16px;
+	background : #99ff99
+}
+
+p
+{
+	margin-left : 32px;
+	line-height : 1.25em;
+}
+
+table
+{
+	border : 1px;
+	border-style : solid;
+	border-color : #000000;
+	width : 600px;
+	line-height : 1.1em;
+	font-size : 16px;
+}
+
+th
+{
+	align : left;
+}
+
+caption
+{
+	align : left;
+	font-weight : bold;
+}

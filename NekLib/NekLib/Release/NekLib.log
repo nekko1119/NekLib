@@ -1,0 +1,33 @@
+﻿2012/07/06 10:06:11 にビルドを開始しました。
+     1>ノード 2 上のプロジェクト "C:\Development\NekLib\NekLib\NekLib\NekLib.vcxproj" (build ターゲット)。
+     1>InitializeBuildStatus:
+         "AlwaysCreate" が指定されたため "Release\NekLib.unsuccessfulbuild" を作成しています。
+       ClCompile:
+         c:\Program Files\Microsoft Visual Studio 10.0\VC\bin\CL.exe /c /I"C:\Program Files\Microsoft DirectX SDK (August 2009)\Include" /I"C:\Program Files\boost\boost_1_47" /Zi /nologo /W3 /WX- /O2 /Oi /Oy- /GL /D WIN32 /D NDEBUG /D _LIB /D _MBCS /Gm- /EHsc /MT /GS /Gy /fp:precise /Zc:wchar_t /Zc:forScope /Fo"Release\\" /Fd"Release\vc100.pdb" /Gd /TP /analyze- /errorReport:prompt Frame.cpp Graphic.cpp Image.cpp Input.cpp SceneManager.cpp Utility.cpp Vector.cpp Window.cpp
+         Frame.cpp
+         Graphic.cpp
+         Image.cpp
+         Input.cpp
+         C:\Program Files\Microsoft DirectX SDK (August 2009)\Include\dinput.h: DIRECTINPUT_VERSION undefined. Defaulting to version 0x0800
+         SceneManager.cpp
+         Utility.cpp
+         Vector.cpp
+         Window.cpp
+       Lib:
+         c:\Program Files\Microsoft Visual Studio 10.0\VC\bin\Lib.exe /OUT:"C:\Development\NekLib\lib\NekLib.lib" /LIBPATH:"C:\Program Files\Microsoft DirectX SDK (August 2009)\Lib\x86" /NOLOGO /LTCG Release\Frame.obj
+         Release\Graphic.obj
+         Release\Image.obj
+         Release\Input.obj
+         Release\SceneManager.obj
+         Release\Utility.obj
+         Release\Vector.obj
+         Release\Window.obj
+         NekLib.vcxproj -> C:\Development\NekLib\lib\NekLib.lib
+       FinalizeBuildStatus:
+         ファイル "Release\NekLib.unsuccessfulbuild" を削除しています。
+         "Release\NekLib.lastbuildstate" のタッチ タスクを実行しています。
+     1>プロジェクト "C:\Development\NekLib\NekLib\NekLib\NekLib.vcxproj" (build ターゲット) のビルドが完了しました。
+
+ビルドに成功しました。
+
+経過時間 00:00:14.62

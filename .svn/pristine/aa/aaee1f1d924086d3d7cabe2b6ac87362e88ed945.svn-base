@@ -1,0 +1,44 @@
+<!doctype html public "-//W3C//DTD HTML 4.01 Transitional//EN">
+<html lang="ja">
+<head>
+<meta http-equiv="content-type" content="text/html; charset=shift_jis">
+<meta http-equiv="content-style-type" content="text/css">
+<meta http-equiv="content-script-type" content="text/javascript">
+<meta name="author" content="根っこ">
+<meta name="generetor" content="サクラエディタ">
+<link rel="stylesheet" type="text/css" href="style.css">
+<style>
+table {border-style : none;}
+</style>
+<title>
+リファレンス&amp;サンプルソース
+</title>
+</head>
+<body>
+<p><a href="../index.html">トップ</a></p>
+<hr>
+<h1>・リファレンス&amp;サンプルソース</h1>
+<ul>
+	<li><h2><a href="reference/framework.html">フレームワーク</a></h2></li>
+	<table>
+	<tr>
+	<td>このライブラリの初期化を行う。あらゆるこのライブラリの使用の前に行う必要がある。</td>
+	</tr>
+	</table>
+	<br><br>
+	<li><h2><a href="reference/graphic2d.html">2Dグラフィック関連</a></h2></li>
+	<table>
+	<tr>
+	<td>2Dグラフィック関連のデータを扱う。画像、文字の読込、描画、ブレンディング</td>
+	</tr>
+	</table>
+	<br><br>
+	<li><h2><a href="reference/other.html">その他</a></h2></li>
+	<table>
+	<tr>
+	<td>主にゲームアルゴリズムを扱ったクラス。衝突判定、シーン遷移管理、FPS管理など</td>
+	</tr>
+	</table>
+</ul>
+</body>
+</html>

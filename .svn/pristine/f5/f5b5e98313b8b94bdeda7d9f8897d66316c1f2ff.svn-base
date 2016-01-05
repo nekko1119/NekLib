@@ -1,0 +1,29 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 11.00
+# Visual Studio 2010
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "NekLibTest", "..\..\NekLibTest\NekLibTest.vcxproj", "{D1EB86FD-5B8C-4A13-A5D6-6361CE22E93F}"
+	ProjectSection(ProjectDependencies) = postProject
+		{11603257-DFA6-40CE-8320-291AEF4F0C98} = {11603257-DFA6-40CE-8320-291AEF4F0C98}
+	EndProjectSection
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "NekLib", "NekLib\NekLib.vcxproj", "{11603257-DFA6-40CE-8320-291AEF4F0C98}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Win32 = Debug|Win32
+		Release|Win32 = Release|Win32
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{D1EB86FD-5B8C-4A13-A5D6-6361CE22E93F}.Debug|Win32.ActiveCfg = Debug|Win32
+		{D1EB86FD-5B8C-4A13-A5D6-6361CE22E93F}.Debug|Win32.Build.0 = Debug|Win32
+		{D1EB86FD-5B8C-4A13-A5D6-6361CE22E93F}.Release|Win32.ActiveCfg = Release|Win32
+		{D1EB86FD-5B8C-4A13-A5D6-6361CE22E93F}.Release|Win32.Build.0 = Release|Win32
+		{11603257-DFA6-40CE-8320-291AEF4F0C98}.Debug|Win32.ActiveCfg = Debug|Win32
+		{11603257-DFA6-40CE-8320-291AEF4F0C98}.Debug|Win32.Build.0 = Debug|Win32
+		{11603257-DFA6-40CE-8320-291AEF4F0C98}.Release|Win32.ActiveCfg = Release|Win32
+		{11603257-DFA6-40CE-8320-291AEF4F0C98}.Release|Win32.Build.0 = Release|Win32
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+EndGlobal

@@ -1,0 +1,49 @@
+<!doctype html public "-//W3C//DTD HTML 4.01 Transitional//EN">
+<html lang="ja">
+<head>
+<meta http-equiv="content-type" content="text/html; charset=shift_jis">
+<meta http-equiv="content-style-type" content="text/css">
+<meta http-equiv="content-script-type" content="text/javascript">
+<meta name="author" content="根っこ">
+<meta name="generetor" content="サクラエディタ">
+<link rel="stylesheet" type="text/css" href="../style.css">
+<style>
+table {border-style : none;}
+</style>
+<title>
+Frame
+</title>
+</head>
+<body>
+<p><a href="../../index.html">トップ</a>　<a href="../reference.html">リファレンス</a>　フレームワ－ク</p>
+<hr>
+<h1>フレームワーク</h1>
+<table>
+<tr>
+<th>クラス</th><th>説明</th>
+</tr>
+<tr>
+<td><a href="framework/frame.html">Frame</a></td><td>NekLibの初期化を行うクラス</td>
+</tr>
+<tr>
+<td><a href="framework/window.html">Window</a></td><td>ウインドウの作成管理を行うクラス</td>
+</tr>
+<tr>
+<td><a href="framework/graphic.html">Graphic</a></td><td>Direct Graphicsの作成管理を行うクラス</td>
+</tr>
+
+<tr>
+<td><br></td><td><br></td>
+</tr>
+<tr>
+<th>メソッド</th><th>説明</th>
+</tr>
+<tr>
+<td><br></td><td><br></td>
+</tr>
+<tr>
+<th>定数</th><th>説明</th>
+</tr>
+</table>
+</body>
+</html>

@@ -1,0 +1,290 @@
+#include <stdexcept>
+#include <Impl/Window.h>
+#include <tchar.h>
+using namespace NekLib;
+
+LRESULT CALLBACK WindowProc(HWND hWnd, UINT msg, WPARAM wp, LPARAM lp);
+
+bool g_isActive = false;//ウインドウがアクティブかどうか
+
+struct Window::Impl
+{
+	bool consoleFlag;	//コンソール画面を作成するかどうかのフラグ
+	FILE* consoleFp;	//コンソール画面のファイルポインタ
+	int width;			//ウインドウのクライアント領域の幅
+	int height;			//ウインドウのクライアント領域の高さ
+	int wndWidth;		//ウインドウの幅
+	int wndHeight;		//ウインドウの高さ
+	int x;				//ウインドウのx座標
+	int y;				//ウインドウのy座標
+	HWND hWnd;			//ウインドウハンドル
+	WNDCLASS wc;		//ウインドウクラス
+	MSG msg;			//ウインドウメッセージ
+	DWORD style;		//ウインドウのスタイル
+
+	Impl();
+	~Impl();
+};
+
+Window::Impl::Impl() :
+	consoleFlag(false),
+	consoleFp(nullptr),
+	width(0),
+	height(0),
+	wndWidth(0),
+	wndHeight(0),
+	x(0U),
+	y(0U),
+	hWnd(nullptr),
+	style(0U)
+{
+	wc.hIcon = LoadIcon(nullptr, IDI_APPLICATION);
+	wc.hCursor = LoadCursor(nullptr, IDC_ARROW);
+	wc.lpszClassName = _T("NekLib");
+}
+
+Window::Impl::~Impl()
+{
+	UnregisterClass(wc.lpszClassName, nullptr);
+
+	if(consoleFlag)
+	{
+		fclose(consoleFp);
+		FreeConsole();
+	}
+}
+
+Window* Window::Get()
+{
+	static Window instance;
+	return &instance;
+}
+
+Window::Window() : m_pImpl(new Impl())
+{
+}
+
+bool Window::Init(const char* title, int width, int height, bool consoleFlag)
+{
+	//値が不正なら例外を投げる
+	if(!title || width <= 0 || height <= 0)
+	{
+		throw std::invalid_argument("Window::Initの引数の値が正しくありません");
+	}
+
+	m_pImpl->width = width;
+	m_pImpl->height = height;
+	m_pImpl->wc.lpszClassName = _T(title);
+	m_pImpl->consoleFlag = consoleFlag;
+
+	//WNDCLASSの設定
+
+	m_pImpl->wc.style = 0U;					//ウインドウスタイル。DirectGraphicsで設定するので何もしない
+	m_pImpl->wc.lpfnWndProc = WindowProc;	//このウインドウのメッセージを管理する関数を指定
+	m_pImpl->wc.cbClsExtra = 0;				//構造体の追加容量をバイトで指定。普通は0
+	m_pImpl->wc.cbWndExtra = 0;				//ウインドウの追加容量をバイトで指定。普通は0
+	m_pImpl->wc.hInstance = nullptr;		//アプリケーションのインスタンスハンドル。NULLを指定すると現在のアプリケーションを取得する。
+	m_pImpl->wc.hbrBackground = (HBRUSH)GetStockObject(BLACK_BRUSH);//ウインドウの背景色。どうせDirectXで上書きされる
+	m_pImpl->wc.lpszMenuName = nullptr;		//ウインドウのメニューの名前。メニューは存在しないのでNULL
+
+	//～～～～～縁込みのウインドウの大きさを求める～～～～～
+
+	RECT rect;//ウインドウの大きさ（クライアント領域＋縁）
+
+	//クライアント領域の大きさを設定する
+	SetRect(&rect, 0, 0, width, height);
+
+	//ウインドウのスタイル
+	//通常のウインドウからサイズ変更と最大化をなくしたもの
+	m_pImpl->style = WS_OVERLAPPEDWINDOW & ~WS_THICKFRAME & ~WS_MAXIMIZEBOX;
+
+	//縁込みのウインドウの大きさを求めて、rectに入れる
+	AdjustWindowRect(&rect, m_pImpl->style, FALSE);
+	m_pImpl->wndWidth = rect.right - rect.left;
+	m_pImpl->wndHeight = rect.bottom - rect.top;
+
+	//～～～～～～～～～～～～～～～～～～～～～～～～～～～
+
+	//ウインドウの座標（ディスプレイの中央に表示するようにする）
+	m_pImpl->x = (GetSystemMetrics(SM_CXSCREEN) - (m_pImpl->wndWidth)) / 2;
+	m_pImpl->y = (GetSystemMetrics(SM_CYSCREEN) - (m_pImpl->wndHeight)) / 2;
+
+	return true;
+}
+
+bool Window::Init(const char* title, int width, int height, bool consoleFlag,
+		int x, int y, const HICON hIcon, const HCURSOR hCursor)
+{
+	//値が不正なら例外を投げる
+	if(!title || width <= 0 || height <= 0 || !hIcon || !hCursor)
+	{
+		throw std::invalid_argument("Window::Initの引数の値が正しくありません");
+	}
+
+	m_pImpl->width = width;
+	m_pImpl->height = height;
+	m_pImpl->wc.lpszClassName = _T(title);
+	m_pImpl->consoleFlag = consoleFlag;
+	m_pImpl->x = x;
+	m_pImpl->y = y;
+
+	//WNDCLASSの設定
+
+	m_pImpl->wc.hIcon = hIcon;
+	m_pImpl->wc.hCursor = hCursor;
+
+	m_pImpl->wc.style = 0U;					//ウインドウスタイル。DirectGraphicsで設定するので何もしない
+	m_pImpl->wc.lpfnWndProc = WindowProc;	//このウインドウのメッセージを管理する関数を指定
+	m_pImpl->wc.cbClsExtra = 0;				//構造体の追加容量をバイトで指定。普通は0
+	m_pImpl->wc.cbWndExtra = 0;				//ウインドウの追加容量をバイトで指定。普通は0
+	m_pImpl->wc.hInstance = nullptr;		//アプリケーションのインスタンスハンドル。NULLを指定すると現在のアプリケーションを取得する。
+	m_pImpl->wc.hbrBackground = (HBRUSH)GetStockObject(BLACK_BRUSH);//ウインドウの背景色。どうせDirectXで上書きされる
+	m_pImpl->wc.lpszMenuName = nullptr;		//ウインドウのメニューの名前。メニューは存在しないのでNULL
+
+	//～～～～～縁込みのウインドウの大きさを求める～～～～～
+
+	RECT rect;//ウインドウの大きさ（クライアント領域＋縁）
+
+	//クライアント領域の大きさを設定する
+	SetRect(&rect, 0, 0, width, height);
+
+	//ウインドウのスタイル
+	//通常のウインドウからサイズ変更と最大化をなくしたもの
+	m_pImpl->style = WS_OVERLAPPEDWINDOW & ~WS_THICKFRAME & ~WS_MAXIMIZEBOX;
+
+	//縁込みのウインドウの大きさを求めて、rectに入れる
+	AdjustWindowRect(&rect, m_pImpl->style, FALSE);
+	m_pImpl->wndWidth = rect.right - rect.left;
+	m_pImpl->wndHeight = rect.bottom - rect.top;
+
+	//～～～～～～～～～～～～～～～～～～～～～～～～～～～
+
+	//ウインドウの座標（ディスプレイの中央に表示するようにする）
+	m_pImpl->x = (GetSystemMetrics(SM_CXSCREEN) - (m_pImpl->wndWidth)) / 2;
+	m_pImpl->y = (GetSystemMetrics(SM_CYSCREEN) - (m_pImpl->wndHeight)) / 2;
+
+	return true;
+}
+
+
+bool Window::Create()
+{
+	//コンソール画面の作成
+	if(m_pImpl->consoleFlag)
+	{
+		AllocConsole();
+		freopen_s(&(m_pImpl->consoleFp), "CONOUT$", "w", stdout);
+		freopen_s(&(m_pImpl->consoleFp), "CONIN$", "w", stdin);
+	}
+
+	if(!RegisterClass(&(m_pImpl->wc)))
+	{
+		return false;
+	}
+	
+	//WM_CREATEを投げる
+	m_pImpl->hWnd = CreateWindow(
+		m_pImpl->wc.lpszClassName,	//ウインドウの名前
+		m_pImpl->wc.lpszClassName,	//ウインドウのタイトル
+		m_pImpl->style,				//ウインドウのスタイル
+		m_pImpl->x,					//ウインドウのx座標
+		m_pImpl->y,					//ウインドウのy座標
+		m_pImpl->wndWidth,			//ウインドウの幅
+		m_pImpl->wndHeight,			//ウインドウの高さ
+		nullptr,					//親ウインドウ。存在しないのでNULL
+		nullptr,					//子ウインドウまたはメニュー。存在しないのでNULL
+		nullptr,					//アプリケーションのインスタンスハンドル。NULLで現在のモジュールを指定
+		nullptr						//WM_CREATEメッセージのLPARAMになる構造体のポインタ。特に無いのでNULL
+		);
+
+	if(!m_pImpl->hWnd)
+	{
+		return false;
+	}
+
+	return true;
+}
+
+bool Window::ProcessMessage()
+{
+	while(true)
+	{
+		if(PeekMessage(&(m_pImpl->msg), nullptr, 0U, 0U, PM_REMOVE))
+		{
+			if(m_pImpl->msg.message == WM_QUIT)
+			{
+				return false;
+			}
+
+			TranslateMessage(&(m_pImpl->msg));
+			DispatchMessage(&(m_pImpl->msg));
+		}
+		else
+		{
+			return true;
+		}
+	}
+}
+
+std::string Window::Title() const
+{
+	return _T(m_pImpl->wc.lpszClassName);
+}
+
+int Window::Width() const
+{
+	return m_pImpl->width;
+}
+
+int Window::Height() const
+{
+	return m_pImpl->height;
+}
+
+bool Window::ConsoleFlag() const
+{
+	return m_pImpl->consoleFlag;
+}
+
+HWND Window::HWnd() const
+{
+	return m_pImpl->hWnd;
+}
+
+bool Window::IsActive() const
+{
+	return g_isActive;
+}
+
+//ウインドウプロシージャ
+LRESULT CALLBACK WindowProc(HWND hWnd, UINT msg, WPARAM wp, LPARAM lp)
+{
+	switch(msg)
+	{
+	case WM_DESTROY:
+		{
+			PostQuitMessage(0);
+			break;
+		}
+	case WM_KEYDOWN:
+		{
+			if(wp == VK_ESCAPE)
+			{
+				PostQuitMessage(0);
+			}
+			break;
+		}
+	case WM_ACTIVATE:
+		{
+			g_isActive = ((wp & 0xffff) != 0);
+			break;
+		}
+	default:
+		{
+			return DefWindowProc(hWnd, msg, wp, lp);
+			break;
+		}
+	}
+
+	return 0;
+}

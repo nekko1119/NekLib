@@ -1,0 +1,154 @@
+#include <NekLib/Impl/Graphic.h>
+#include <NekLib/Impl/Window.h>
+#include <NekLib/Common.h>
+#include <stdexcept>
+using namespace NekLib;
+
+#pragma comment(lib, "d3d9.lib")
+
+struct Graphic::Impl
+{
+	ComPtr<IDirect3D9> pD3D;			//Direct3Dインターフェイス
+	ComPtr<IDirect3DDevice9> pD3DDevice;//デバイス。ビデオカードを抽象化したもの
+	D3DPRESENT_PARAMETERS d3dpp;		//出力画面の情報を纏めた構造体
+	Window* pWindow;					//ウインドウクラス
+	bool isLostDevice;					//デバイスロストしているかどうか
+
+	Impl();
+};
+
+Graphic::Impl::Impl() :
+pD3D(nullptr),
+	pD3DDevice(nullptr),
+	pWindow(nullptr),
+	isLostDevice(false)
+{
+}
+
+Graphic* Graphic::Get()
+{
+	static Graphic instance;
+	return &instance;
+}
+
+Graphic::Graphic() : m_pImpl(new Impl())
+{
+}
+
+bool Graphic::Init(Window* pWindow, bool isWindowed)
+{
+	//Direct 3Dインターフェイスの作成
+	m_pImpl->pD3D = Direct3DCreate9( D3D_SDK_VERSION );
+
+	//作成に失敗したっ例外を投げる
+	if(!m_pImpl->pD3D)
+	{
+		throw std::runtime_error("Direct3D9の作成に失敗しました");
+	}
+
+	m_pImpl->pWindow = pWindow;
+
+
+	//ディスプレイの情報を取得
+
+	D3DDISPLAYMODE d3ddm;
+	
+	if(FAILED(m_pImpl->pD3D->GetAdapterDisplayMode(D3DADAPTER_DEFAULT, &d3ddm)))
+	{
+		return false;
+	}
+		
+	m_pImpl->d3dpp.BackBufferWidth = m_pImpl->pWindow->Width();//裏画面の幅	
+	m_pImpl->d3dpp.BackBufferHeight = m_pImpl->pWindow->Height();//裏画面の高さ
+	m_pImpl->d3dpp.BackBufferFormat = d3ddm.Format;//色深度（表示できる色数）
+	m_pImpl->d3dpp.BackBufferCount = 1;//裏画面の枚数。普通は1枚
+	m_pImpl->d3dpp.MultiSampleType = D3DMULTISAMPLE_NONE;//数字が高いほど、ジャギ消しやアンチエイリアスが掛かり、より綺麗な画像になる。しかしこれはビデオカード依存なので、どのビデオカードでもいいようにD3DMULTISAMPLE_NONEを指定する
+	m_pImpl->d3dpp.MultiSampleQuality = 0U;//MultiSampleTypeの質。NONEの場合は0を指定
+	m_pImpl->d3dpp.SwapEffect = D3DSWAPEFFECT_DISCARD;//裏画面と表画面の切替方法。この定数はディスプレイドライバが自動で判別してくれるという意味
+	m_pImpl->d3dpp.hDeviceWindow = nullptr;//対象のウインドウを指定。NULLで現在のフォーカスウインドウになる。
+	m_pImpl->d3dpp.EnableAutoDepthStencil = TRUE;//深度ステンシルスバッファの有無。これにはZバッファ（奥行き）も含まれるため、3Dをやるなら必要。やらないなら（2Dなら）FALSEでもいい
+	m_pImpl->d3dpp.AutoDepthStencilFormat = D3DFMT_D16;//深度ステンシルバファの設定。Zバッファに何ビット使うか
+	m_pImpl->d3dpp.Flags = 0U;//裏画面から表画面に転送するときの機能のオプション。何もしないので0を指定
+	m_pImpl->d3dpp.PresentationInterval = D3DPRESENT_INTERVAL_DEFAULT;//裏表切り替えのタイミングを指定。この定数は「描画が終わってから切り替える」という意味
+
+	//ウインドウかフルスクリーンかで分岐
+	if(isWindowed)
+	{
+		m_pImpl->d3dpp.Windowed = TRUE;//ウインドウで起動
+		m_pImpl->d3dpp.FullScreen_RefreshRateInHz = D3DPRESENT_INTERVAL_DEFAULT;//フルスクリーンの時のリフレッシュレートを指定。描画が終わってから
+	}
+	else
+	{
+		m_pImpl->d3dpp.Windowed = FALSE;
+		m_pImpl->d3dpp.FullScreen_RefreshRateInHz = d3ddm.RefreshRate;//フルスクリーンの時のリフレッシュレートを指定。ディスプレイと同じタイミングで
+	}
+
+	return true;
+}
+
+bool Graphic::Create()
+{
+	//デバイスの作成。最後まで失敗したら例外を投げる
+	//描画、計算共にハードウェア
+	if(FAILED(m_pImpl->pD3D->CreateDevice(
+		D3DADAPTER_DEFAULT,
+		D3DDEVTYPE_HAL,
+		m_pImpl->pWindow->HWnd(),
+		D3DCREATE_HARDWARE_VERTEXPROCESSING,
+		&(m_pImpl->d3dpp),
+		m_pImpl->pD3DDevice.ToCreate()
+		)))
+	{
+		if(FAILED(m_pImpl->pD3D->CreateDevice(
+			D3DADAPTER_DEFAULT,
+			D3DDEVTYPE_HAL,
+			m_pImpl->pWindow->HWnd(),
+			D3DCREATE_SOFTWARE_VERTEXPROCESSING,
+			&(m_pImpl->d3dpp),
+			m_pImpl->pD3DDevice.ToCreate()
+			)))
+		{
+			if(FAILED(m_pImpl->pD3D->CreateDevice(
+				D3DADAPTER_DEFAULT,
+				D3DDEVTYPE_REF,
+				m_pImpl->pWindow->HWnd(),
+				D3DCREATE_SOFTWARE_VERTEXPROCESSING,
+				&(m_pImpl->d3dpp),
+				m_pImpl->pD3DDevice.ToCreate()
+				)))
+			{
+				throw std::runtime_error("Graphic::CreateでDirect3DDevice9の作成に失敗しました");
+			}
+		}
+	}
+
+	//TODO:クライアントが設定できるようにする（ライティングとかも）
+	//Zバッファを有効にする
+	m_pImpl->pD3DDevice->SetRenderState(D3DRS_ZENABLE, TRUE);
+
+	//ウインドウの表示
+	ShowWindow(m_pImpl->pWindow->HWnd(), SW_SHOW);//表示
+	ValidateRect(m_pImpl->pWindow->HWnd(), nullptr);//WM_PAINTを投げないようにする
+
+	return true;
+}
+
+ComPtr<IDirect3DDevice9> Graphic::Device() const
+{
+	return m_pImpl->pD3DDevice;
+}
+
+D3DPRESENT_PARAMETERS* Graphic::D3DPP() const
+{
+	return &m_pImpl->d3dpp;
+}
+
+bool Graphic::IsLostDevice() const
+{
+	return m_pImpl->isLostDevice;
+}
+
+void Graphic::IsLostDevice(bool flag)
+{
+	m_pImpl->isLostDevice = flag;
+}
